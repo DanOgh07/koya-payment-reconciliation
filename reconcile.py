@@ -9,11 +9,25 @@ import json
 total = 0.0
 count = 0
 
+# A payment can be attempted more than once. Every attempt has the same txn_id.
+
+
 with open("payments.jsonl") as f:
     for line in f:
+        if not line.strip():        # Ignore lines that can't be read
+            continue
         event = json.loads(line)
-        if event["status"] == "success":
-            total += float(event["amount"])
+        if "txn_id" not in event:       # Ignore events without a txn_id
+            continue
+         
+        
+                                       # Only the latest attempt for each txn_id counts.
+        # Solution to TypeError = remove commas from string first before converting to float
+        if type(event["amount"]) != float:
+            event["amount"] = event["amount"].replace(",", "")
+            
+        if event["status"] == "success":        # A payment counts as collected only if its LATEST attempt is success.
+            total += float(event["amount"])     # TypeError: unsupported operand type(s) for +=: 'float' and 'str'
             count += 1
 
 with open("expected.txt") as f:
