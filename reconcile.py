@@ -14,21 +14,29 @@ count = 0
 
 with open("payments.jsonl") as f:
     for line in f:
-        if not line.strip():        # Ignore lines that can't be read
+        if not line.strip():  # Ignore empty lines
             continue
-        event = json.loads(line)
-        if "txn_id" not in event:       # Ignore events without a txn_id
-            continue
-         
-        
-                                       # Only the latest attempt for each txn_id counts.
-        # Solution to TypeError = remove commas from string first before converting to float
-        if type(event["amount"]) != float:
-            event["amount"] = event["amount"].replace(",", "")
+
+        try: 
+            event = json.loads(line)
+                    
+            if "txn_id" not in event:   # Ignore events without a txn_id
+                continue
             
-        if event["status"] == "success":        # A payment counts as collected only if its LATEST attempt is success.
-            total += float(event["amount"])     # TypeError: unsupported operand type(s) for +=: 'float' and 'str'
-            count += 1
+            # Solution to TypeError = remove comma(s) from string first before converting to float
+            if type(event["amount"]) != float:
+                event["amount"] = event["amount"].replace(",", "")
+
+            if event["status"] == "success":        # A payment counts as collected only if its LATEST attempt is success.
+                total += float(event["amount"])     # TypeError: unsupported operand type(s) for +=: 'float' and 'str'
+                count += 1
+
+        # Ignore lines that can't be read: json.decoder.JSONDecodeError
+        except json.decoder.JSONDecodeError:
+            continue
+
+                                       # Only the latest attempt for each txn_id counts.
+        
 
 with open("expected.txt") as f:
     expected = int(f.read().strip())
